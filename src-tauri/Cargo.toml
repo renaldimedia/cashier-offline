@@ -1,0 +1,63 @@
+[package]
+name = "cashier"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "cashier_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "cashier"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# Tauri
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
+
+# Database
+rusqlite = { version = "0.31", features = ["bundled", "chrono"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "chrono"] }
+tracing-appender = "0.2"
+
+# Utilities
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4"] }
+bcrypt = "0.15"
+thiserror = "1"
+anyhow = "1"
+
+# HTTP client for sync
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+
+# JWT for sync auth
+jsonwebtoken = "9"
+
+# Encryption (for API key storage)
+aes-gcm = "0.10"
+base64 = "0.22"
+
+# Concurrency
+parking_lot = "0.12"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
