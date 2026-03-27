@@ -37,29 +37,29 @@ export default function Layout() {
   return (
     <div className="flex h-screen bg-gray-50 text-gray-900">
       {/* Sidebar */}
-      <aside className="w-52 flex flex-col bg-white border-r border-gray-200 shrink-0">
+      <aside className="xl:w-52 md:w-24 w-16 flex flex-col bg-white border-r border-gray-200 shrink-0">
         {/* Logo */}
         <div className="px-5 py-4 border-b border-gray-100">
           <h1 className="font-semibold text-base tracking-tight">POS App</h1>
-          <p className="text-xs text-gray-400 mt-0.5 capitalize">{session?.role}</p>
+          <p className="text-xs text-gray-400 mt-0.5 capitalize word-wrap"></p>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 py-3 overflow-y-auto">
+        <nav className="flex-1 py-3 overflow-y-auto flex flex-col xl:items-start items-center justify-start">
           {NAV_ITEMS.filter((item) => !item.perm || can(item.perm)).map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.to === "/"}
               className={({ isActive }) => clsx(
-                "flex items-center gap-2.5 px-5 py-2 text-sm transition-colors",
+                "flex items-center xl:justify-start justify-center gap-2.5 px-5 py-2 text-sm transition-colors w-full",
                 isActive
                   ? "bg-gray-100 text-gray-900 font-medium"
                   : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
               )}
             >
-              <span className="text-base">{item.icon}</span>
-              {item.label}
+              <span className="text-base min-w-8 flex justify-center">{item.icon}</span>
+              <span className="xl:inline-block hidden">{item.label}</span>
             </NavLink>
           ))}
         </nav>
