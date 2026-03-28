@@ -185,3 +185,16 @@ export function Loading() {
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(amount);
 }
+
+export function formatDate(datestr: string, lang: string = "id-ID"): string {
+  if (!datestr) return "";
+
+  const date = new Date(datestr);
+  if (isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat(lang, {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}

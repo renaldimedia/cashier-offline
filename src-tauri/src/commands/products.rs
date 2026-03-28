@@ -8,6 +8,47 @@ use uuid::Uuid;
 use crate::AppState;
 use super::ApiResponse;
 
+#[derive(Debug, Deserialize, Default)]
+pub struct ProductQuery {
+    // ── Pagination ───────────────────────────────────────────
+    /// 1-based page number (default: 1)
+    pub page:     Option<i64>,
+    /// Rows per page (default: 25, max: 200)
+    pub per_page: Option<i64>,
+ 
+    // ── Filters ──────────────────────────────────────────────
+    /// Full-text search across name, sku, barcode (case-insensitive, LIKE %q%)
+    pub search:      Option<String>,
+    /// Filter by category_id (exact match)
+    pub category_id: Option<String>,
+    /// "active" | "inactive" — omit for all
+    pub status:      Option<String>,
+    /// "low"  = stock > 0 AND stock <= stock_min
+    /// "zero" = stock = 0
+    /// "ok"   = stock > stock_min
+    pub stock_level: Option<String>,
+    /// "synced" = synced_at IS NOT NULL
+    /// "local"  = synced_at IS NULL
+    pub sync_status: Option<String>,
+ 
+    // ── Sort ─────────────────────────────────────────────────
+    /// Column to sort by: name | sku | price | cost | stock | category_id
+    /// Default: "name"
+    pub sort_by:  Option<String>,
+    /// "asc" | "desc" — default: "asc"
+    pub sort_dir: Option<String>,
+}
+ 
+// Paginated response wrapper
+#[derive(Debug, Serialize)]
+pub struct ProductPage {
+    pub data:        Vec<Product>,
+    pub total:       i64,
+    pub page:        i64,
+    pub per_page:    i64,
+    pub total_pages: i64,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Product {
     pub id:          String,
@@ -81,35 +122,174 @@ fn row_to_product(row: &rusqlite::Row) -> rusqlite::Result<Product> {
     })
 }
 
+/// Build the WHERE clause and its positional params from a [ProductQuery].
+/// Returns (where_sql, params_vec) where params are already in order.
+///
+/// We use a Vec<Box<dyn ToSql>> so every optional filter appends its value
+/// right after appending its SQL fragment — keeping index alignment automatic.
+fn build_where(q: &ProductQuery) -> (String, Vec<Box<dyn rusqlite::ToSql>>) {
+    let mut clauses: Vec<String> = Vec::new();
+    let mut params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
+    let mut idx = 1usize; // SQLite positional param counter
+ 
+    // ── Search: name LIKE %q% OR sku LIKE %q% OR barcode LIKE %q% ──────────
+    if let Some(ref s) = q.search {
+        if !s.trim().is_empty() {
+            let pattern = format!("%{}%", s.trim());
+            clauses.push(format!(
+                "(p.name LIKE ?{idx} OR p.sku LIKE ?{idx} OR p.barcode LIKE ?{idx})"
+            ));
+            params.push(Box::new(pattern));
+            idx += 1;
+        }
+    }
+ 
+    // ── Category ────────────────────────────────────────────────────────────
+    if let Some(ref cat) = q.category_id {
+        if !cat.is_empty() {
+            clauses.push(format!("p.category_id = ?{idx}"));
+            params.push(Box::new(cat.clone()));
+            idx += 1;
+        }
+    }
+ 
+    // ── Status ──────────────────────────────────────────────────────────────
+    match q.status.as_deref() {
+        Some("active")   => { clauses.push(format!("p.is_active = ?{idx}")); params.push(Box::new(1i64)); idx += 1; }
+        Some("inactive") => { clauses.push(format!("p.is_active = ?{idx}")); params.push(Box::new(0i64)); idx += 1; }
+        _ => {}
+    }
+ 
+    // ── Stock level ─────────────────────────────────────────────────────────
+    match q.stock_level.as_deref() {
+        Some("zero") => { clauses.push("p.stock = 0".into()); }
+        Some("low")  => { clauses.push("(p.stock > 0 AND p.stock <= p.stock_min)".into()); }
+        Some("ok")   => { clauses.push("p.stock > p.stock_min".into()); }
+        _ => {}
+    }
+ 
+    // ── Sync status ─────────────────────────────────────────────────────────
+    match q.sync_status.as_deref() {
+        Some("synced") => { clauses.push("p.synced_at IS NOT NULL".into()); }
+        Some("local")  => { clauses.push("p.synced_at IS NULL".into()); }
+        _ => {}
+    }
+ 
+    let where_sql = if clauses.is_empty() {
+        String::new()
+    } else {
+        format!("WHERE {}", clauses.join(" AND "))
+    };
+ 
+    (where_sql, params)
+}
+ 
+/// Validate and return the ORDER BY clause from query params.
+/// Allowlisted columns prevent SQL injection.
+fn build_order(q: &ProductQuery) -> String {
+    let col = match q.sort_by.as_deref().unwrap_or("name") {
+        "sku"         => "p.sku",
+        "price"       => "p.price",
+        "cost"        => "p.cost",
+        "stock"       => "p.stock",
+        "category_id" => "p.category_id",
+        "is_active"   => "p.is_active",
+        "created_at"  => "p.created_at",
+        "updated_at"  => "p.updated_at",
+        _             => "p.name",   // safe default
+    };
+    let dir = match q.sort_dir.as_deref().unwrap_or("asc") {
+        "desc" => "DESC",
+        _      => "ASC",
+    };
+    format!("ORDER BY {} {} NULLS LAST", col, dir)
+}
+
 #[tauri::command]
 pub fn cmd_list_products(
-    active_only: Option<bool>,
+    query: Option<ProductQuery>,
     state: State<AppState>,
-) -> ApiResponse<Vec<Product>> {
+) -> ApiResponse<ProductPage> {
     let _session = match state.session.require_role("cashier") {
-        Ok(s) => s, Err(e) => return ApiResponse::err(e.to_string()),
+        Ok(s) => s,
+        Err(e) => return ApiResponse::err(e.to_string()),
     };
-
+ 
+    let q = query.unwrap_or_default();
+ 
+    // ── Pagination ───────────────────────────────────────────────────────────
+    let page     = q.page.unwrap_or(1).max(1);
+    let per_page = q.per_page.unwrap_or(25).clamp(1, 200);
+    let offset   = (page - 1) * per_page;
+ 
+    // ── Build WHERE + ORDER ──────────────────────────────────────────────────
+    let (where_sql, filter_params) = build_where(&q);
+    let order_sql = build_order(&q);
+ 
     let db = state.db.master.lock().unwrap();
-    let filter = if active_only.unwrap_or(true) { "WHERE p.is_active = 1" } else { "" };
-    let sql = format!(
-        "SELECT id,sku,barcode,name,description,category_id,price,cost,
-                stock,stock_min,unit,image_path,is_active,ext_id,synced_at,
-                created_at,updated_at
-         FROM products p {} ORDER BY name ASC", filter
+ 
+    // ── COUNT for total ──────────────────────────────────────────────────────
+    let count_sql = format!(
+        "SELECT COUNT(*) FROM products p {where_sql}"
     );
-
-    let mut stmt = match db.conn().prepare(&sql) {
-        Ok(s) => s, Err(e) => return ApiResponse::err(e.to_string()),
+    let count_param_refs: Vec<&dyn rusqlite::ToSql> =
+        filter_params.iter().map(|p| p.as_ref()).collect();
+ 
+    let total: i64 = match db.conn().query_row(
+        &count_sql,
+        count_param_refs.as_slice(),
+        |row| row.get(0),
+    ) {
+        Ok(n)  => n,
+        Err(e) => return ApiResponse::err(format!("Count query failed: {e}")),
     };
-
+ 
+    let total_pages = ((total as f64) / (per_page as f64)).ceil() as i64;
+ 
+    // ── Data query ───────────────────────────────────────────────────────────
+    // Append LIMIT / OFFSET as the last two positional params.
+    let param_count = filter_params.len();
+    let limit_idx   = param_count + 1;
+    let offset_idx  = param_count + 2;
+ 
+    let data_sql = format!(
+        "SELECT p.id, p.sku, p.barcode, p.name, p.description,
+                p.category_id, p.price, p.cost,
+                p.stock, p.stock_min, p.unit, p.image_path,
+                p.is_active, p.ext_id, p.synced_at,
+                p.created_at, p.updated_at
+         FROM products p
+         {where_sql}
+         {order_sql}
+         LIMIT ?{limit_idx} OFFSET ?{offset_idx}"
+    );
+ 
+    // Rebuild param list (filter params + limit + offset)
+    let mut all_params: Vec<Box<dyn rusqlite::ToSql>> = build_where(&q).1;
+    all_params.push(Box::new(per_page));
+    all_params.push(Box::new(offset));
+ 
+    let all_refs: Vec<&dyn rusqlite::ToSql> =
+        all_params.iter().map(|p| p.as_ref()).collect();
+ 
+    let mut stmt = match db.conn().prepare(&data_sql) {
+        Ok(s)  => s,
+        Err(e) => return ApiResponse::err(format!("Prepare failed: {e}")),
+    };
+ 
     let products: Vec<Product> = stmt
-        .query_map([], row_to_product)
+        .query_map(all_refs.as_slice(), row_to_product)
         .unwrap()
         .filter_map(|r| r.ok())
         .collect();
-
-    ApiResponse::ok(products)
+ 
+    ApiResponse::ok(ProductPage {
+        data: products,
+        total,
+        page,
+        per_page,
+        total_pages,
+    })
 }
 
 #[tauri::command]

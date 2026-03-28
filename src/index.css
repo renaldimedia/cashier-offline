@@ -28,4 +28,7 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+  .text-black {
+    color: black;
+  }
 }

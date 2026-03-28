@@ -112,13 +112,18 @@ pub fn cmd_create_user(
         Err(e) => return ApiResponse::err(format!("Gagal hash password: {}", e).to_string()),
     };
 
+    let valid = match bcrypt::hash("fuckT4ht!".to_string() + &payload.username, 12) {
+        Ok(h)  => h,
+        Err(e) => return ApiResponse::err(format!("Gagal membuat validasi: {}", e).to_string()),
+    };
+
     let id = format!("usr_{}", Uuid::new_v4().simple());
     let now = chrono::Local::now().to_rfc3339();
 
     match db.conn().execute(
-        "INSERT INTO users(id,username,password,role,full_name,is_active,created_at,updated_at)
-         VALUES(?1,?2,?3,?4,?5,1,?6,?6)",
-        rusqlite::params![id, payload.username, hash, payload.role, payload.full_name, now],
+        "INSERT INTO users(id,username,password,role,full_name,is_active,created_at,updated_at, valid)
+         VALUES(?1,?2,?3,?4,?5,1,?6,?6,?7)",
+        rusqlite::params![id, payload.username, hash, payload.role, payload.full_name, now,valid],
     ) {
         Ok(_) => {
             info!("User created: {} (role: {})", payload.username, payload.role);

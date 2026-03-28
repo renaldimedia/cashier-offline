@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS users (
   pin         TEXT,                      -- optional 4-6 digit PIN (hashed)
   is_active   INTEGER NOT NULL DEFAULT 1,
   created_at  TEXT    NOT NULL,
-  updated_at  TEXT    NOT NULL
+  updated_at  TEXT    NOT NULL,
+  valid       TEXT    UNIQUE NOT NULL
 );
 
 -- ─────────────────────────────────────────
@@ -62,7 +63,8 @@ CREATE TABLE IF NOT EXISTS products (
   ext_id        TEXT,
   synced_at     TEXT,
   created_at    TEXT    NOT NULL,
-  updated_at    TEXT    NOT NULL
+  updated_at    TEXT    NOT NULL,
+  valid       TEXT    NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_products_sku     ON products(sku);
@@ -84,7 +86,8 @@ CREATE TABLE IF NOT EXISTS customers (
   ext_id      TEXT,
   synced_at   TEXT,
   created_at  TEXT    NOT NULL,
-  updated_at  TEXT    NOT NULL
+  updated_at  TEXT    NOT NULL,
+  valid       TEXT    NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_customers_phone  ON customers(phone);
@@ -164,7 +167,7 @@ INSERT OR IGNORE INTO settings (key, value, value_type, description, updated_at)
 
 -- Default superadmin user (password: admin123 — MUST be changed)
 -- password hash for 'admin123' using bcrypt cost 12
-INSERT OR IGNORE INTO users (id, username, password, role, full_name, is_active, created_at, updated_at)
+INSERT OR IGNORE INTO users (id, username, password, role, full_name, is_active, created_at, updated_at, valid)
 VALUES (
   'usr_superadmin_default',
   'superadmin',
@@ -173,5 +176,6 @@ VALUES (
   'Super Administrator',
   1,
   datetime('now'),
-  datetime('now')
+  datetime('now'),
+  '<hash_valid_placeholder_replace_on_first_run>'
 );

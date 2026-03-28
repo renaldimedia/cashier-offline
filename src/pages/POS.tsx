@@ -1,26 +1,36 @@
 // src/pages/POS.tsx
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import toast from "react-hot-toast";
 import clsx from "clsx";
 
-import { api, Category, Product } from "../lib/tauri";
+import { api, Category, Product, ProductPage, ProductQuery } from "../lib/tauri";
 import { useCartStore } from "../store/cartStore";
 import { Button, Input, Modal, PageHeader, formatCurrency } from "../components/ui";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
+import { Grid } from "react-loader-spinner";
 
 
 
 export default function POSPage() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [result, setResult] = useState<ProductPage | null>(null);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(window.innerWidth > 768);
   const searchRef = useRef<HTMLInputElement>(null);
+  const [page, setPage] = useState(1)
   const [width, setWidth] = useState(window.innerWidth);
   const { session, can } = useAuthStore();
   const [cats, setCats] = useState<Category[]>([]);
   const [loadingCat, setLoadingCat] = useState(false)
+  const [selectedCat, setSelectedCat] = useState("")
 
   const loadCategories = async () => {
     setLoadingCat(true);
@@ -42,21 +52,39 @@ export default function POSPage() {
 
   const cart = useCartStore();
 
+  // ── Fetch ─────────────────────────────────────────────────
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const query: ProductQuery = {
+        page,
+        per_page: 100,
+        ...(debouncedSearch && { search: debouncedSearch }),
+        ...(selectedCat && { category_id: selectedCat })
+      };
+      const res = await api.products.list(query);
+      setResult(res);
+    } catch (e: unknown) {
+      toast.error("Gagal memuat produk");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, debouncedSearch, selectedCat]);
+
   // Load products
   useEffect(() => {
-    api.products.list(true).then(setProducts).catch(console.error);
+    load()
     loadCategories();
     searchRef.current?.focus();
   }, []);
 
+  const pageData = result?.data ?? [];
+
+  useEffect(() => {
+    load()
+  }, [load])
 
 
-  const filtered = products.filter((p) =>
-    !search ||
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.sku.includes(search) ||
-    p.barcode?.includes(search)
-  );
 
   return (
     <div>
@@ -92,13 +120,13 @@ export default function POSPage() {
             {cats.length > 0 && (
               <div className="w-full flex gap-2 flex-wrap mb-4">
                 {cats.map((item) => (
-                  <Button className="bg-transparent text-black border hover:text-white">{item.name}</Button>
+                  <Button onClick={() => setSelectedCat(item.id)} className={`${selectedCat == item.id ? "text-white" : "text-black bg-transparent hover:text-white"} border`}>{item.name}</Button>
                 ))}
               </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-              {filtered.map((p) => (
+              {pageData.map((p) => (
                 <button
                   key={p.id}
                   onClick={() => cart.addItem(p)}
@@ -119,7 +147,19 @@ export default function POSPage() {
                 </button>
               ))}
             </div>
-            {filtered.length === 0 && (
+            {loading && (
+              <Grid
+                visible={true}
+                height="80"
+                width="80"
+                color="#4fa94d"
+                ariaLabel="grid-loading"
+                radius="12.5"
+                wrapperStyle={{}}
+                wrapperClass="grid-wrapper"
+              />
+            )}
+            {pageData.length === 0 && (
               <div className="flex items-center justify-center h-32 text-sm text-gray-400">
                 Produk tidak ditemukan
               </div>

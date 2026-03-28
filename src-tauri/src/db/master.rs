@@ -4,7 +4,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
-use rusqlite::{Connection, params};
+use rusqlite::{params, Connection};
 use tracing::info;
 
 /// Wraps the SQLite connection for master.db
@@ -90,23 +90,51 @@ impl MasterDb {
     /// Seed default admin user with a proper bcrypt hash on first run.
     /// The placeholder hash in SQL is replaced here.
     fn seed_default_admin(&self) -> Result<()> {
-        let placeholder = "$2b$12$placeholder_replace_on_first_run";
-        let current: String = self.conn.query_row(
-            "SELECT password FROM users WHERE id = 'usr_superadmin_default'",
-            [],
-            |row| row.get(0),
-        ).unwrap_or_default();
+        let placeholder1 = "$2b$12$placeholder_replace_on_first_run";
+        let placeholder2 = "<hash_valid_placeholder_replace_on_first_run>";
 
-        if current == placeholder {
-            info!("Hashing default superadmin password...");
-            let hash = bcrypt::hash("admin123", 12)
-                .context("Failed to hash default password")?;
+        let (current_pass, current_valid, current_user): (String, String, String) = self
+            .conn
+            .query_row(
+                "SELECT password, valid, username FROM users WHERE id = 'usr_superadmin_default'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .unwrap_or_default();
+
+        let mut need_update = false;
+
+        let new_password = if current_pass == placeholder1 {
+            need_update = true;
+            Some(bcrypt::hash("admin123", 12).context("Failed to hash default password")?)
+        } else {
+            None
+        };
+
+        let new_valid = if current_valid == placeholder2 {
+            need_update = true;
+
+
+            let combined = format!("fuckT4ht!{}", current_user);
+
+            Some(bcrypt::hash(combined, 12).context("Failed to hash valid field")?)
+        } else {
+            None
+        };
+
+        if need_update {
+            info!("Updating default superadmin placeholders...");
+
             self.conn.execute(
-                "UPDATE users SET password = ?1, updated_at = datetime('now')
-                 WHERE id = 'usr_superadmin_default'",
-                params![hash],
+                "UPDATE users
+             SET password = COALESCE(?1, password),
+                 valid    = COALESCE(?2, valid),
+                 updated_at = datetime('now')
+             WHERE id = 'usr_superadmin_default'",
+                params![new_password, new_valid],
             )?;
-            info!("Default superadmin password set (remember to change it!).");
+
+            info!("Default superadmin placeholders replaced.");
         }
 
         Ok(())

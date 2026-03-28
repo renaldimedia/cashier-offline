@@ -88,6 +88,7 @@ pub fn run() {
             commands::transactions::cmd_get_transaction,
             commands::transactions::cmd_list_transactions,
             commands::transactions::cmd_void_transaction,
+            commands::transactions::cmd_void_transactions,
             commands::transactions::cmd_list_tx_months,
             // Settings
             commands::settings::cmd_get_settings,
