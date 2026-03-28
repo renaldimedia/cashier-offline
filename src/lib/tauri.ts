@@ -105,6 +105,14 @@ export interface TransactionPage {
     total_pages: number;
 }
 
+export interface DataPaging {
+    data: any[];
+    total: number;
+    page: number;
+    per_page: number;
+    total_pages: number;
+}
+
 export interface TransactionQuery {
     // pagination
     page?: number;
@@ -153,6 +161,18 @@ export interface FieldMapping {
     is_required: boolean; sort_order: number;
 }
 
+export interface CategoryQuery {
+    // pagination
+    page?: number;
+    per_page?: number;
+    // filters
+    search?: string;
+    sync_status?: "synced" | "local";
+    // sort
+    sort_by?: "name" | "created_at" | "sort_order";
+    sort_dir?: "asc" | "desc";
+}
+
 // ─────────────────────────────────────────────
 // Auth
 // ─────────────────────────────────────────────
@@ -192,7 +212,7 @@ export const api = {
 
     // ─── Categories ──────────────────────────
     categories: {
-        list: () => call<Category[]>("cmd_list_categories"),
+        list: (query: CategoryQuery) => call<Category[]>("cmd_list_categories", {query}),
         create: (p: { name: string; description?: string; sort_order?: number }) =>
             call<null>("cmd_create_category", { payload: p }),
         update: (id: string, p: { name: string; description?: string; sort_order?: number }) =>

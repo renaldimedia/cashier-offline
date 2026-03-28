@@ -12,7 +12,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!can("view_reports")) return;
-    api.transactions.list(100, 0).then((txs) => {
+    api.transactions.list({page: 1, per_page: 50}).then((txs) => {
       const completed = (txs as Record<string, unknown>[]).filter((t) => t["status"] === "completed");
       const revenue   = completed.reduce((s: number, t) => s + ((t["total"] as number) ?? 0), 0);
       setStats({ txCount: completed.length, revenue, pending: 0 });

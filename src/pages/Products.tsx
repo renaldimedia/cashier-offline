@@ -127,8 +127,9 @@ export default function ProductsPage() {
   useEffect(() => { load(); }, [load]);
 
   // Load categories once
-  useEffect(() => {
-    api.categories.list().then(setCategories).catch(() => { });
+  useEffect(async () => {
+    const res = await api.categories.list({page: 1, per_page: 1000});
+    setCategories(res?.data ?? [])
   }, []);
 
   // Close column picker on outside click

@@ -80,13 +80,15 @@ export default function TransactionsPages() {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
 
+  const [modalDetail, setModalDetail] = useState<string>("");
+
   // UI state
   const [cols, setCols] = useState<ColDef[]>(DEFAULT_COLS);
   const [colsOpen, setColsOpen] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const colsRef = useRef<HTMLDivElement>(null);
 
-  const [modalDetail, setModalDetail] = useState<string>("");
+  
 
   // Debounce search to avoid firing on every keystroke
   const [debouncedSearch, setDebouncedSearch] = useState("");
