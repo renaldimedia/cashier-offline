@@ -31,10 +31,15 @@ const DEFAULT_COLS: ColDef[] = [
 
 const PAGE_SIZES = [10, 25, 50, 100];
 
-export default function CategoriesPage() {
+type CategoriesPageProps = {
+  mode?: "page" | "modal";
+  onSelect?: (value: Category) => void; // optional
+};
+
+export default function CategoriesPage({mode = "page", onSelect}: CategoriesPageProps) {
   const [result, setResult] = useState<DataPaging | null>(null);
 
-  const [cats, setCats] = useState<Category[]>([]);
+  // const [cats, setCats] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Category | null | "new">(null);
 
@@ -180,7 +185,7 @@ export default function CategoriesPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <PageHeader title="Kategori" actions={<Button onClick={() => setEditing("new")}>+ Tambah</Button>} />
+      <PageHeader title="Kategori" actions={mode == "page" ? (<Button onClick={() => setEditing("new")}>+ Tambah</Button>) : false} />
       {/* Toolbar */}
       <div className="flex items-center gap-2 flex-wrap px-4 py-2.5 border-b border-gray-100 bg-white">
         {/* Search */}
@@ -233,7 +238,7 @@ export default function CategoriesPage() {
         </div>
       </div>
       {/* Bulk action bar */}
-      {selected.size > 0 && (
+      {selected.size > 0 && mode == "page" && (
         <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border-b border-blue-100 text-sm">
           <span className="font-medium text-blue-900">{selected.size} dipilih</span>
           <button 
@@ -257,11 +262,14 @@ export default function CategoriesPage() {
                 <table className="w-full text-sm border-collapse">
                   <thead className="sticky top-0 z-10 bg-gray-50">
                     <tr>
-                      <th className="w-9 px-3 py-2.5 border-b border-gray-200">
+                      {mode == "page" && (
+                        <th className="w-9 px-3 py-2.5 border-b border-gray-200">
                         <input type="checkbox" checked={allOnPageSelected}
                           onChange={(e) => toggleAll(e.target.checked)}
                           className="w-3.5 h-3.5 cursor-pointer" />
                       </th>
+                      )}
+                      
       
                       {visibleCols.map((col) => (
                         <th
@@ -294,10 +302,13 @@ export default function CategoriesPage() {
                           "group transition-colors",
                           isSel ? "bg-blue-50" : "hover:bg-gray-50"
                         )}>
-                          <td className="px-3 py-2.5">
+                          {mode == "page" && (
+                            <td className="px-3 py-2.5">
                             <input type="checkbox" checked={isSel} onChange={() => toggleRow(p.id)}
                               className="w-3.5 h-3.5 cursor-pointer" />
                           </td>
+                          )}
+                          
       
                           {visibleCols.map((col) => (
                             <td key={col.key}
@@ -321,8 +332,10 @@ export default function CategoriesPage() {
       
                           {/* Actions — visible on row hover */}
                           <td className="px-3 py-2.5 text-right">
-                            <div className="flex items-center justify-end gap-1.5 invisible group-hover:visible">
-                             <button onClick={() => setEditing(p)}
+                            <div className="flex items-center justify-end gap-1.5">
+                             {mode == "page" && (
+                              <>
+                              <button onClick={() => setEditing(p)}
                                 className="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 text-gray-600">
                                 Edit
                               </button>
@@ -330,6 +343,14 @@ export default function CategoriesPage() {
                                 className="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 text-gray-600">
                                 Delete
                               </button>
+                              </>
+                             )}
+                             {mode == "modal" && (
+                              <button onClick={() => onSelect?.(p)}
+                                className="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 text-gray-600">
+                                Pilih
+                              </button>
+                             )}
                             </div>
                           </td>
                         </tr>

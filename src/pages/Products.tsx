@@ -8,6 +8,7 @@ import clsx from "clsx";
 
 import { api, Product, ProductQuery, ProductPage, Category } from "../lib/tauri";
 import { Button, Input, Select, Modal, PageHeader, EmptyState, Loading, formatCurrency } from "../components/ui";
+import CategoriesPage from "./Categories";
 
 // ─────────────────────────────────────────────
 // Column definitions
@@ -70,6 +71,7 @@ export default function ProductsPage() {
   // Server data
   const [result, setResult] = useState<ProductPage | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [filterCatLabel, setFilterCatLabel] = useState<string>("Pilih Kategori");
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Product | null | "new">(null);
 
@@ -83,6 +85,19 @@ export default function ProductsPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
+  const [selectCatModal, setSelectCatModal] = useState<boolean>(false);
+
+  const openSelectCategory = () => {
+    setSelectCatModal(!selectCatModal)
+  }
+
+  useEffect(() => {
+    console.log({filterCat})
+    if(filterCat == ""){
+      setFilterCatLabel("Pilih Kategori")
+    }
+    
+  }, [filterCat])
 
   // UI state
   const [cols, setCols] = useState<ColDef[]>(DEFAULT_COLS);
@@ -126,11 +141,6 @@ export default function ProductsPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Load categories once
-  useEffect(async () => {
-    const res = await api.categories.list({page: 1, per_page: 1000});
-    setCategories(res?.data ?? [])
-  }, []);
 
   // Close column picker on outside click
   useEffect(() => {
@@ -238,10 +248,15 @@ export default function ProductsPage() {
         </div>
 
         {/* Filters */}
-        <Chip value={filterCat} onChange={(v) => setFilterCat(v)}>
-          <option value="">Semua Kategori</option>
-          {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </Chip>
+        <div className={`border border-gray-300 rounded-md bg-white flex items-center relative ${filterCat != "" ? "pr-4" : ""}`} style={{ columnGap: "5px" }}>
+          <Button onClick={openSelectCategory} className="h-8 text-sm outline-none text-black bg-white cursor-pointer hover:border-gray-400 hover:text-white">{filterCatLabel}</Button>
+          {filterCat != "" && (<button className="p-1 absolute right-1" onClick={() => setFilterCat("")}><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+          </button>)}
+
+        </div>
+
 
         <Chip value={filterSt} onChange={(v) => setFilterSt(v)}>
           <option value="">Semua Status</option>
@@ -459,6 +474,10 @@ export default function ProductsPage() {
           onSaved={() => { setEditing(null); load(); }}
         />
       )}
+
+      {selectCatModal && (
+        <CategoriesModal onSaved={(val) => { setFilterCatLabel(val.name); setFilterCat(val.id) }} onClose={openSelectCategory}></CategoriesModal>
+      )}
     </div>
   );
 }
@@ -495,6 +514,26 @@ function PageBtn({ children, onClick, disabled, current }: {
       )}>
       {children}
     </button>
+  );
+}
+
+function CategoriesModal({
+  onClose,
+  onSaved,
+}: {
+  onClose: () => void;
+  onSaved: (category: Category) => void; // ⬅️ kirim value keluar
+}) {
+  return (
+    <Modal open title="Pilih Kategori" onClose={onClose} width="w-lg">
+      <CategoriesPage
+        mode="modal"
+        onSelect={(cat) => {
+          onSaved(cat);   // kirim ke parent
+          onClose();      // tutup modal
+        }}
+      />
+    </Modal>
   );
 }
 
