@@ -1,9 +1,8 @@
 // src/pages/Transactions.tsx
 import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { api, TransactionPage, TransactionQuery } from "../lib/tauri";
-import { Button, Badge, PageHeader, EmptyState, Loading, formatCurrency, formatDate, Modal } from "../components/ui";
-import { useAuthStore } from "../store/authStore";
+import { api, Transaction, TransactionPage, TransactionQuery } from "../lib/tauri";
+import { PageHeader, EmptyState, Loading, formatCurrency, formatDate, Modal } from "../components/ui";
 import clsx from "clsx";
 
 
@@ -59,20 +58,20 @@ function SyncBadge({ synced }: { synced: boolean }) {
   );
 }
 
-type TxRow = { id: string; invoice_no: string; cashier_name: string; customer_name?: string; total: number; status: string; created_at: string };
+// type TxRow = { id: string; invoice_no: string; cashier_name: string; customer_name?: string; total: number; status: string; created_at: string };
 
 export default function TransactionsPages() {
 
   const [result, setResult] = useState<TransactionPage | null>(null);
-  const [txs, setTxs] = useState<TxRow[]>([]);
+  // const [txs, setTxs] = useState<TxRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const { can } = useAuthStore();
 
   // Query state (maps 1-to-1 to TransactionQuery)
   const [search, setSearch] = useState("");
-  const [filterCat, setFilterCat] = useState<string>("");
   const [filterSt, setFilterSt] = useState<string>("");
+  // @ts-ignore
   const [filterCust, setFilterCust] = useState<string>("");
+  // @ts-ignore
   const [filterCashier, setFilterCashier] = useState<string>("");
   const [filterSync, setFilterSync] = useState<string>("");
   const [sortBy, setSortBy] = useState<SortableKey>("created_at");
@@ -210,7 +209,7 @@ export default function TransactionsPages() {
     } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Gagal"); }
   };
 
-  const openDetail = async (id) => {
+  const openDetail = async (id: any) => {
     setModalDetail(id)
   }
 
@@ -472,7 +471,7 @@ function DetailModal({ transactionId, onClose }: {
   onClose: () => void;
 }) {
   const [loading, setLoading] = useState(true);
-  const [detail, setDetail] = useState(null);
+  const [detail, setDetail] = useState<Transaction | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -512,7 +511,7 @@ function DetailModal({ transactionId, onClose }: {
 
         <div className="flex justify-between">
           <span className="text-gray-500">Tanggal</span>
-          <span>{formatDate(detail?.created_at)}</span>
+          <span>{formatDate(detail?.created_at ?? "")}</span>
         </div>
 
         <div className="flex justify-between">
@@ -546,12 +545,12 @@ function DetailModal({ transactionId, onClose }: {
       <div className="border rounded-lg p-4">
         <div className="flex justify-between font-semibold text-base">
           <span>Total</span>
-          <span>{formatCurrency(detail?.total)}</span>
+          <span>{formatCurrency(detail?.total ?? 0)}</span>
         </div>
         <br />
         <div className="flex justify-between text-base">
           <span>Paid Amount</span>
-          <span>{formatCurrency(detail?.paid_amount)}</span>
+          <span>{formatCurrency(detail?.paid_amount ?? 0)}</span>
         </div>
         <div className="flex justify-between text-base">
           <span>Payment Method</span>
@@ -559,7 +558,7 @@ function DetailModal({ transactionId, onClose }: {
         </div>
         <div className="flex justify-between text-base">
           <span>Change Amount</span>
-          <span>{formatCurrency(detail?.change_amount)}</span>
+          <span>{formatCurrency(detail?.change_amount ?? 0)}</span>
         </div>
       </div>
 

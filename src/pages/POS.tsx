@@ -3,10 +3,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import toast from "react-hot-toast";
 import clsx from "clsx";
 
-import { api, Category, Product, ProductPage, ProductQuery } from "../lib/tauri";
+import { api, Category, ProductPage, ProductQuery } from "../lib/tauri";
 import { useCartStore } from "../store/cartStore";
 import { Button, Input, Modal, PageHeader, formatCurrency } from "../components/ui";
-import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { Grid } from "react-loader-spinner";
 
@@ -25,17 +25,22 @@ export default function POSPage() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(window.innerWidth > 768);
   const searchRef = useRef<HTMLInputElement>(null);
+  // @ts-ignore
   const [page, setPage] = useState(1)
+  // @ts-ignore
   const [width, setWidth] = useState(window.innerWidth);
+  // @ts-ignore
   const { session, can } = useAuthStore();
   const [cats, setCats] = useState<Category[]>([]);
+  // @ts-ignore
   const [loadingCat, setLoadingCat] = useState(false)
   const [selectedCat, setSelectedCat] = useState("")
 
   const loadCategories = async () => {
     setLoadingCat(true);
-    const data = await api.categories.list().catch(() => []);
-    setCats(data); setLoadingCat(false);
+    const data = await api.categories.list({page: 1, per_page: 100}).catch(() => []);
+    // @ts-ignore
+    setCats(data?.data ?? []); setLoadingCat(false);
   };
 
   useEffect(() => {

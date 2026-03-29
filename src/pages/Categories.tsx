@@ -161,6 +161,7 @@ export default function CategoriesPage({mode = "page", onSelect}: CategoriesPage
   // ─────────────────────────────────────────────
   // Badges
   // ─────────────────────────────────────────────
+  // @ts-ignore
   function StatusBadge({ active }: { active: boolean }) {
     return (
       <span className={clsx(

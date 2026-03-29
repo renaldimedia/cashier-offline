@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { api, Setting } from "../lib/tauri";
-import { Button, Input, PageHeader, Loading } from "../components/ui";
+import { Button, PageHeader, Loading } from "../components/ui";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Setting[]>([]);

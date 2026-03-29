@@ -86,17 +86,22 @@ export interface TransactionItem {
     discount_pct: number; discount_amount: number; total: number;
 }
 
-// export interface Transaction {
-//     id?: string; 
-//     customer_id?:string;
-//     customer_name?:string;
-//     cashier_id?:string;
-//     cashier_name?:string;
-//     total?:number;
-//     payments?: Payment[];
-//     synced_at?: string;
-//     created_at: string; updated_at: string;
-// }
+export interface Transaction {
+    id?: string; 
+    invoice_no?: string;
+    customer_id?:string;
+    customer_name?:string;
+    cashier_id?:string;
+    cashier_name?:string;
+    total:number;
+    paid_amount?:number;
+    change_amount?:number;
+    payments?: Payment[];
+    items?: TransactionItem[];
+    synced_at?: string;
+    created_at?: string; 
+    updated_at: string;
+}
 export interface TransactionPage {
     data: any[];
     total: number;
@@ -235,7 +240,7 @@ export const api = {
             call<TransactionItem>("cmd_create_transaction", { payload: p }),
         list: (query?: TransactionQuery) =>
             call<unknown[]>("cmd_list_transactions", { query }),
-        get: (id: string) => call<unknown>("cmd_get_transaction", { id }),
+        get: (id: string) => call<Transaction>("cmd_get_transaction", { id }),
         void: (id: string, reason: string) =>
             call<null>("cmd_void_transaction", { id, reason }),
         voids: (ids: string, reason: string) =>

@@ -6,7 +6,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { api, SyncSource, FieldMapping } from "../lib/tauri";
 import {
   Button, Input, Select, Modal, Badge, Card,
-  PageHeader, EmptyState, Loading, formatCurrency
+  PageHeader, EmptyState, Loading
 } from "../components/ui";
 
 type SyncStatus = "ok" | "error" | null | undefined;
@@ -82,7 +82,7 @@ export default function SyncPage() {
             { key: "failed",   label: "Gagal",    color: "red"    },
             { key: "syncing",  label: "Proses",   color: "blue"   },
           ].map(({ key, label, color }) => (
-            <Card key={key} className="p-4 text-center">
+            <Card key={key} className={`p-4 text-center bg-${color}-200`}>
               <div className="text-2xl font-bold">{stats[key] ?? 0}</div>
               <div className="text-xs text-gray-400 mt-1">{label}</div>
             </Card>
