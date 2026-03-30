@@ -37,6 +37,28 @@ export interface User {
     created_at: string; updated_at: string;
 }
 
+export interface UserQuery {
+    // pagination
+    page?: number;
+    per_page?: number;
+    // filters
+    search?: string;
+    status?: "active" | "inactive";
+    role?: "superadmin" | "manager" | "cashier";
+    sync_status?: "synced" | "local";
+    // sort
+    sort_by?: "username" | "full_name" | "role" | "created_at" | "is_active";
+    sort_dir?: "asc" | "desc";
+}
+
+export interface UserPage {
+    data: User[];
+    total: number;
+    page: number;
+    per_page: number;
+    total_pages: number;
+}
+
 export interface ProductQuery {
     // pagination
     page?: number;
@@ -191,7 +213,7 @@ export const api = {
 
     // ─── Users ───────────────────────────────
     users: {
-        list: () => call<User[]>("cmd_list_users"),
+        list: (query?: UserQuery) => call<User[]>("cmd_list_users", { query }),
         create: (p: { username: string; password: string; role: string; full_name: string }) =>
             call<User>("cmd_create_user", { payload: p }),
         update: (p: { id: string; full_name?: string; is_active?: boolean }) =>

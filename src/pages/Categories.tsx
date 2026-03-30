@@ -36,7 +36,7 @@ type CategoriesPageProps = {
   onSelect?: (value: Category) => void; // optional
 };
 
-export default function CategoriesPage({mode = "page", onSelect}: CategoriesPageProps) {
+export default function CategoriesPage({ mode = "page", onSelect }: CategoriesPageProps) {
   const [result, setResult] = useState<DataPaging | null>(null);
 
   // const [cats, setCats] = useState<Category[]>([]);
@@ -172,7 +172,7 @@ export default function CategoriesPage({mode = "page", onSelect}: CategoriesPage
       </span>
     );
   }
-  
+
   function SyncBadge({ synced }: { synced: boolean }) {
     return (
       <span className={clsx(
@@ -242,7 +242,7 @@ export default function CategoriesPage({mode = "page", onSelect}: CategoriesPage
       {selected.size > 0 && mode == "page" && (
         <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border-b border-blue-100 text-sm">
           <span className="font-medium text-blue-900">{selected.size} dipilih</span>
-          <button 
+          <button
             className="text-xs px-2.5 py-1 border border-red-200 rounded bg-white text-red-700 hover:bg-red-50">
             Hapus Kategori
           </button>
@@ -254,152 +254,152 @@ export default function CategoriesPage({mode = "page", onSelect}: CategoriesPage
       )}
 
       {/* Table */}
-            <div className="flex-1 overflow-auto">
-              {loading ? (
-                <Loading />
-              ) : !result || result.data.length === 0 ? (
-                <EmptyState message="Tidak ada produk yang cocok." />
-              ) : (
-                <table className="w-full text-sm border-collapse">
-                  <thead className="sticky top-0 z-10 bg-gray-50">
-                    <tr>
-                      {mode == "page" && (
-                        <th className="w-9 px-3 py-2.5 border-b border-gray-200">
-                        <input type="checkbox" checked={allOnPageSelected}
-                          onChange={(e) => toggleAll(e.target.checked)}
-                          className="w-3.5 h-3.5 cursor-pointer" />
-                      </th>
-                      )}
-                      
-      
-                      {visibleCols.map((col) => (
-                        <th
-                          key={col.key}
-                          onClick={col.sortBy ? () => handleSort(col.sortBy!) : undefined}
-                          className={clsx(
-                            "px-3 py-2.5 border-b border-gray-200 text-left text-xs font-medium",
-                            "text-gray-500 uppercase tracking-wide select-none whitespace-nowrap",
-                            col.width,
-                            col.align === "right" && "text-right",
-                            col.sortBy && "cursor-pointer hover:text-gray-800",
-                            sortBy === col.sortBy && "text-gray-800"
-                          )}
-                        >
-                          {col.label}
-                          <SortIcon colSortBy={col.sortBy} />
-                        </th>
-                      ))}
-      
-                      <th className="w-24 px-3 py-2.5 border-b border-gray-200" />
-                    </tr>
-                  </thead>
-      
-                  <tbody className="divide-y divide-gray-100">
-                    {pageData.map((p) => {
-                      const isSel = selected.has(p.id);
-      
-                      return (
-                        <tr key={p.id} className={clsx(
-                          "group transition-colors",
-                          isSel ? "bg-blue-50" : "hover:bg-gray-50"
-                        )}>
-                          {mode == "page" && (
-                            <td className="px-3 py-2.5">
-                            <input type="checkbox" checked={isSel} onChange={() => toggleRow(p.id)}
-                              className="w-3.5 h-3.5 cursor-pointer" />
-                          </td>
-                          )}
-                          
-      
-                          {visibleCols.map((col) => (
-                            <td key={col.key}
-                              className={clsx("px-3 py-2.5 max-w-0 overflow-hidden text-ellipsis whitespace-nowrap",
-                                col.align === "right" && "text-right")}>
-                              {col.key === "sort_order" && (
-                                <span className="font-mono text-xs text-gray-500">{p.sort_order}</span>
-                              )}
-                              {col.key === "name" && (
-                                <span className="font-mono text-xs text-gray-500">{p.name}</span>
-                              )}
-                              {col.key === "description" && (
-                                <span className="font-mono text-xs text-gray-500">{p.description}</span>
-                              )}
-                              {col.key === "sync" && <SyncBadge synced={!!p.synced_at} />}
-                              {col.key == "created_at" && (
-                                <span className="font-medium">{formatDate(p.created_at)}</span>
-                              )}
-                            </td>
-                          ))}
-      
-                          {/* Actions — visible on row hover */}
-                          <td className="px-3 py-2.5 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                             {mode == "page" && (
-                              <>
-                              <button onClick={() => setEditing(p)}
-                                className="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 text-gray-600">
-                                Edit
-                              </button>
-                              <button 
-                                className="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 text-gray-600">
-                                Delete
-                              </button>
-                              </>
-                             )}
-                             {mode == "modal" && (
-                              <button onClick={() => onSelect?.(p)}
-                                className="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 text-gray-600">
-                                Pilih
-                              </button>
-                             )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </div>
-      
-            {/* Pagination footer */}
-            {result && result.total > 0 && (
-              <div className="flex items-center justify-between px-4 py-2.5 border-t border-gray-100 bg-white gap-4 flex-wrap text-xs text-gray-500">
-                {/* Rows per page */}
-                <div className="flex items-center gap-1.5">
-                  Tampilkan
-                  <select value={perPage} onChange={(e) => setPerPage(Number(e.target.value))}
-                    className="h-7 border border-gray-300 rounded px-1.5 outline-none text-xs">
-                    {PAGE_SIZES.map((n) => <option key={n} value={n}>{n}</option>)}
-                  </select>
-                  baris
-                </div>
-      
-                {/* Info */}
-                <span>
-                  {((result.page - 1) * result.per_page + 1).toLocaleString("id-ID")}–
-                  {Math.min(result.page * result.per_page, result.total).toLocaleString("id-ID")} dari{" "}
-                  {result.total.toLocaleString("id-ID")} produk
-                </span>
-      
-                {/* Page buttons */}
-                <div className="flex items-center gap-1">
-                  <PageBtn onClick={() => setPage((p) => p - 1)} disabled={page <= 1}>‹</PageBtn>
-                  {buildRange().map((pg, i) =>
-                    pg === "…" ? (
-                      <span key={`e${i}`} className="px-1 text-gray-400">…</span>
-                    ) : (
-                      <PageBtn key={pg} onClick={() => setPage(pg as number)} current={pg === page}>
-                        {pg}
-                      </PageBtn>
-                    )
-                  )}
-                  <PageBtn onClick={() => setPage((p) => p + 1)} disabled={page >= totalPages}>›</PageBtn>
-                </div>
-              </div>
-            )}
+      <div className="flex-1 overflow-auto">
+        {loading ? (
+          <Loading />
+        ) : !result || result.data.length === 0 ? (
+          <EmptyState message="Tidak ada produk yang cocok." />
+        ) : (
+          <table className="w-full text-sm border-collapse">
+            <thead className="sticky top-0 z-10 bg-gray-50">
+              <tr>
+                {mode == "page" && (
+                  <th className="w-9 px-3 py-2.5 border-b border-gray-200">
+                    <input type="checkbox" checked={allOnPageSelected}
+                      onChange={(e) => toggleAll(e.target.checked)}
+                      className="w-3.5 h-3.5 cursor-pointer" />
+                  </th>
+                )}
 
-    
+
+                {visibleCols.map((col) => (
+                  <th
+                    key={col.key}
+                    onClick={col.sortBy ? () => handleSort(col.sortBy!) : undefined}
+                    className={clsx(
+                      "px-3 py-2.5 border-b border-gray-200 text-left text-xs font-medium",
+                      "text-gray-500 uppercase tracking-wide select-none whitespace-nowrap",
+                      col.width,
+                      col.align === "right" && "text-right",
+                      col.sortBy && "cursor-pointer hover:text-gray-800",
+                      sortBy === col.sortBy && "text-gray-800"
+                    )}
+                  >
+                    {col.label}
+                    <SortIcon colSortBy={col.sortBy} />
+                  </th>
+                ))}
+
+                <th className="w-24 px-3 py-2.5 border-b border-gray-200" />
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-gray-100">
+              {pageData.map((p) => {
+                const isSel = selected.has(p.id);
+
+                return (
+                  <tr key={p.id} className={clsx(
+                    "group transition-colors",
+                    isSel ? "bg-blue-50" : "hover:bg-gray-50"
+                  )}>
+                    {mode == "page" && (
+                      <td className="px-3 py-2.5">
+                        <input type="checkbox" checked={isSel} onChange={() => toggleRow(p.id)}
+                          className="w-3.5 h-3.5 cursor-pointer" />
+                      </td>
+                    )}
+
+
+                    {visibleCols.map((col) => (
+                      <td key={col.key}
+                        className={clsx("px-3 py-2.5 max-w-0 overflow-hidden text-ellipsis whitespace-nowrap",
+                          col.align === "right" && "text-right")}>
+                        {col.key === "sort_order" && (
+                          <span className="font-mono text-xs text-gray-500">{p.sort_order}</span>
+                        )}
+                        {col.key === "name" && (
+                          <span className="font-mono text-xs text-gray-500">{p.name}</span>
+                        )}
+                        {col.key === "description" && (
+                          <span className="font-mono text-xs text-gray-500">{p.description}</span>
+                        )}
+                        {col.key === "sync" && <SyncBadge synced={!!p.synced_at} />}
+                        {col.key == "created_at" && (
+                          <span className="font-medium">{formatDate(p.created_at)}</span>
+                        )}
+                      </td>
+                    ))}
+
+                    {/* Actions — visible on row hover */}
+                    <td className="px-3 py-2.5 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {mode == "page" && (
+                          <>
+                            <button onClick={() => setEditing(p)}
+                              className="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 text-gray-600">
+                              Edit
+                            </button>
+                            <button
+                              className="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 text-gray-600">
+                              Delete
+                            </button>
+                          </>
+                        )}
+                        {mode == "modal" && (
+                          <button onClick={() => onSelect?.(p)}
+                            className="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-100 text-gray-600">
+                            Pilih
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Pagination footer */}
+      {result && result.total > 0 && (
+        <div className="flex items-center justify-between px-4 py-2.5 border-t border-gray-100 bg-white gap-4 flex-wrap text-xs text-gray-500">
+          {/* Rows per page */}
+          <div className="flex items-center gap-1.5">
+            Tampilkan
+            <select value={perPage} onChange={(e) => setPerPage(Number(e.target.value))}
+              className="h-7 border border-gray-300 rounded px-1.5 outline-none text-xs">
+              {PAGE_SIZES.map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+            baris
+          </div>
+
+          {/* Info */}
+          <span>
+            {((result.page - 1) * result.per_page + 1).toLocaleString("id-ID")}–
+            {Math.min(result.page * result.per_page, result.total).toLocaleString("id-ID")} dari{" "}
+            {result.total.toLocaleString("id-ID")} produk
+          </span>
+
+          {/* Page buttons */}
+          <div className="flex items-center gap-1">
+            <PageBtn onClick={() => setPage((p) => p - 1)} disabled={page <= 1}>‹</PageBtn>
+            {buildRange().map((pg, i) =>
+              pg === "…" ? (
+                <span key={`e${i}`} className="px-1 text-gray-400">…</span>
+              ) : (
+                <PageBtn key={pg} onClick={() => setPage(pg as number)} current={pg === page}>
+                  {pg}
+                </PageBtn>
+              )
+            )}
+            <PageBtn onClick={() => setPage((p) => p + 1)} disabled={page >= totalPages}>›</PageBtn>
+          </div>
+        </div>
+      )}
+
+
       {editing !== null && (
         <CatModal
           cat={editing === "new" ? null : editing}
