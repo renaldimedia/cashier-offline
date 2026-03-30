@@ -102,6 +102,20 @@ export interface Customer {
     created_at: string; updated_at: string;
 }
 
+
+export interface CustomerQuery {
+    // pagination
+    page?: number;
+    per_page?: number;
+    // filters
+    search?: string;
+    status?: "active" | "inactive";
+    sync_status?: "synced" | "local";
+    // sort
+    sort_by?: "created_at" | "name" | "phone" | "email" | "is_active" | "updated_at" | "address";
+    sort_dir?: "asc" | "desc";
+}
+
 export interface TransactionItem {
     product_id: string; product_sku: string; product_name: string;
     qty: number; unit: string; unit_price: number;
@@ -249,10 +263,10 @@ export const api = {
 
     // ─── Customers ───────────────────────────
     customers: {
-        list: (query?: string) => call<Customer[]>("cmd_list_customers", { query }),
+        list: (query?: CustomerQuery) => call<Customer[]>("cmd_list_customers", { query }),
         create: (p: { name: string; phone?: string; email?: string; address?: string; notes?: string }) =>
             call<string>("cmd_create_customer", { payload: p }),
-        update: (id: string, p: { name: string; phone?: string; email?: string; address?: string; notes?: string }) =>
+        update: (id: string, p: { name?: string; phone?: string; email?: string; address?: string; notes?: string }) =>
             call<null>("cmd_update_customer", { id, payload: p }),
     },
 
